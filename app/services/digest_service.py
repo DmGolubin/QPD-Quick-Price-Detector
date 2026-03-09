@@ -27,7 +27,7 @@ class DigestService:
             tz = pytz.timezone(user.timezone or "Europe/Moscow")
             now = datetime.now(tz).time()
         except Exception:
-            now = datetime.now(timezone.utc).time()
+            now = datetime.utcnow().time()
         start, end = user.quiet_hours_start, user.quiet_hours_end
         if start <= end:
             return start <= now <= end
@@ -57,7 +57,7 @@ class DigestService:
         return "\n".join(lines)
 
     async def generate_daily_digest(self, user_id: int) -> str:
-        since = datetime.now(timezone.utc) - timedelta(hours=24)
+        since = datetime.utcnow() - timedelta(hours=24)
         result = await self.session.execute(
             select(AlertLog)
             .where(AlertLog.user_id == user_id, AlertLog.created_at >= since)
@@ -78,7 +78,7 @@ class DigestService:
         return "\n".join(lines)
 
     async def generate_weekly_digest(self, user_id: int) -> str:
-        since = datetime.now(timezone.utc) - timedelta(days=7)
+        since = datetime.utcnow() - timedelta(days=7)
         result = await self.session.execute(
             select(AlertLog)
             .where(AlertLog.user_id == user_id, AlertLog.created_at >= since)

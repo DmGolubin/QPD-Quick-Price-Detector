@@ -122,7 +122,7 @@ class MonitorService:
         for key, value in data.items():
             if hasattr(monitor, key):
                 setattr(monitor, key, value)
-        monitor.updated_at = datetime.now(timezone.utc)
+        monitor.updated_at = datetime.utcnow()
         await self.session.commit()
         await self.session.refresh(monitor)
         return monitor
@@ -140,7 +140,7 @@ class MonitorService:
         if not monitor:
             return None
         monitor.is_active = not monitor.is_active
-        monitor.updated_at = datetime.now(timezone.utc)
+        monitor.updated_at = datetime.utcnow()
         await self.session.commit()
         await self.session.refresh(monitor)
         return monitor
@@ -199,7 +199,7 @@ class MonitorService:
 
     async def get_price_history(self, monitor_id: int, days: int = 30, limit: int = 1000) -> list:
         from datetime import timedelta
-        since = datetime.now(timezone.utc) - timedelta(days=days)
+        since = datetime.utcnow() - timedelta(days=days)
         result = await self.session.execute(
             select(PriceHistory)
             .where(PriceHistory.monitor_id == monitor_id, PriceHistory.recorded_at >= since)

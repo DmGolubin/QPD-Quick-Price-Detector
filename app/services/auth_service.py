@@ -49,7 +49,7 @@ class AuthService:
         api_key = result.scalar_one_or_none()
         if not api_key:
             return None
-        api_key.last_used_at = datetime.now(timezone.utc)
+        api_key.last_used_at = datetime.utcnow()
         await self.session.commit()
         return await self.get_user_by_id(api_key.user_id)
 

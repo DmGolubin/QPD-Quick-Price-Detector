@@ -36,7 +36,7 @@ class AlertService:
             if triggered:
                 msg = triggered["message"]
                 await self._log_alert(monitor, cond, msg, old_price, new_price)
-                cond.last_triggered_at = datetime.now(timezone.utc)
+                cond.last_triggered_at = datetime.utcnow()
                 alerts.append(triggered)
         # Check threshold_below / threshold_above from monitor fields
         if old_price is not None:
@@ -109,7 +109,7 @@ class AlertService:
         if not cond.last_triggered_at:
             return False
         cooldown = timedelta(seconds=cond.cooldown_seconds)
-        return datetime.now(timezone.utc) - cond.last_triggered_at.replace(tzinfo=timezone.utc) < cooldown
+        return datetime.utcnow() - cond.last_triggered_at < cooldown
 
     async def _log_alert(self, monitor, cond, message, old_price, new_price):
         change_pct = None

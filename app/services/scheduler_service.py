@@ -140,7 +140,7 @@ class SchedulerService:
             monitor.last_error = None
             monitor.last_price = scrape_result.price
             monitor.last_raw_text = scrape_result.raw_text
-            monitor.last_checked = datetime.now(timezone.utc)
+            monitor.last_checked = datetime.utcnow()
             monitor.availability_status = scrape_result.availability_status
 
             if was_failing:
