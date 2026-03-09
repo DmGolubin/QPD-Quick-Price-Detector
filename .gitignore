@@ -1,5 +1,45 @@
-.env
+# Python
 __pycache__/
 *.pyc
-.venv/
+*.pyo
 *.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+db/
+*.db
+*.sqlite3
+
+# Playwright
+playwright-report/
+test-results/
+
+# Old prototype files (pre-refactor)
+bot.py
+config.py
+database.py
+scraper.py
+web.py
+main.py
+price-tracker/

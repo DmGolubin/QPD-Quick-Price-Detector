@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Настройки — Price Monitor Pro{% endblock %}
+{% block content %}
+<h1>⚙️ Настройки</h1>
+<div class="section" id="settings-form">
+    <p>Загрузка...</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadSettings() {
+    const resp = await fetch('/api/v1/settings');
+    const json = await resp.json();
+    const s = json.data || {};
+    document.getElementById('settings-form').innerHTML = `
+        <form onsubmit="saveSettings(event)">
+            <label>Часовой пояс:</label>
+            <input type="text" id="tz" value="${s.timezone || 'Europe/Moscow'}" class="input">
+            <label>Интервал по умолчанию (сек):</label>
+            <input type="number" id="interval" value="${s.default_check_interval || 300}" class="input">
+            <label>Частота дайджеста:</label>
+            <select id="digest" class="input">
+                <option value="none" ${s.digest_frequency === 'none' ? 'selected' : ''}>Отключён</option>
+                <option value="daily" ${s.digest_frequency === 'daily' ? 'selected' : ''}>Ежедневно</option>
+                <option value="weekly" ${s.digest_frequency === 'weekly' ? 'selected' : ''}>Еженедельно</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+        </form>`;
+}
+async function saveSettings(e) {
+    e.preventDefault();
+    await fetch('/api/v1/settings', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            timezone: document.getElementById('tz').value,
+            default_check_interval: parseInt(document.getElementById('interval').value),
+            digest_frequency: document.getElementById('digest').value,
+        })
+    });
+    alert('Сохранено');
+}
+loadSettings();
+</script>
+{% endblock %}

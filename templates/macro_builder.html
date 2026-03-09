@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Конструктор макросов — Price Monitor Pro{% endblock %}
+{% block content %}
+<h1>🔧 Конструктор макросов</h1>
+<div class="section">
+    <div id="macro-steps"></div>
+    <button onclick="addStep()" class="btn btn-primary">+ Добавить шаг</button>
+    <button onclick="saveMacro()" class="btn btn-primary">💾 Сохранить</button>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/macro-builder.js"></script>
+{% endblock %}
