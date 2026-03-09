@@ -1,7 +1,10 @@
 """Visual element selector service — server-side proxy for iframe."""
 import logging
+import random
 import re
 from urllib.parse import urljoin, urlparse
+
+from app.services.scraper_service import USER_AGENTS
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +17,6 @@ SELECTOR_JS = """
         if (selected) selected.style.outline = '';
         selected = e.target;
         selected.style.outline = '3px solid #6c5ce7';
-        const path = getElementPath(selected);
         const cssSelector = generateCSSSelector(selected);
         const xpath = generateXPath(selected);
         window.parent.postMessage({
@@ -23,7 +25,6 @@ SELECTOR_JS = """
             xpath: xpath,
             text: selected.textContent.trim().substring(0, 500),
             tag: selected.tagName.toLowerCase(),
-            path: path
         }, '*');
     }, true);
 
@@ -58,15 +59,6 @@ SELECTOR_JS = """
         }
         return '/' + path.join('/');
     }
-
-    function getElementPath(el) {
-        let path = [];
-        while (el && el.nodeType === 1) {
-            path.unshift({tag: el.tagName, id: el.id, classes: el.className});
-            el = el.parentElement;
-        }
-        return path;
-    }
 })();
 """
 
@@ -80,10 +72,23 @@ class VisualSelectorService:
             await self.scraper.initialize()
         browser = await self.scraper._browser_pool.get()
         try:
-            context = await browser.new_context(viewport={"width": 1280, "height": 800})
+            context = await browser.new_context(
+                user_agent=random.choice(USER_AGENTS),
+                viewport={"width": 1280, "height": 900},
+                locale="ru-RU",
+                timezone_id="Europe/Moscow",
+                java_script_enabled=True,
+            )
+            # Stealth: mask webdriver detection
+            await context.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                Object.defineProperty(navigator, 'languages', {get: () => ['ru-RU', 'ru', 'en-US', 'en']});
+                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+                window.chrome = {runtime: {}};
+            """)
             page = await context.new_page()
             try:
-                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                await page.goto(url, wait_until="networkidle", timeout=45000)
                 html = await page.content()
                 # Rewrite relative URLs
                 parsed = urlparse(url)

@@ -3,7 +3,12 @@
 {% block content %}
 <div class="detail-header">
     <h1>{{ monitor.name }}</h1>
-    <a href="{{ monitor.url }}" target="_blank" class="btn btn-sm">🔗 Открыть</a>
+    <div class="detail-actions">
+        <a href="{{ monitor.url }}" target="_blank" class="btn btn-sm">🔗 Открыть</a>
+        <form method="post" action="/monitor/{{ monitor.id }}/delete" style="display:inline" onsubmit="return confirm('Удалить монитор «{{ monitor.name }}»?')">
+            <button type="submit" class="btn btn-sm btn-danger">🗑 Удалить</button>
+        </form>
+    </div>
 </div>
 
 <div class="stats-grid">
