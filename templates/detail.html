@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ watch.name }} — Price Tracker</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+</head>
+<body>
+<div class="container">
+    <a href="/" class="back-link">← Назад к списку</a>
+
+    <div class="detail-header">
+        <h1>{{ watch.name }}</h1>
+        <div style="color:var(--muted);font-size:0.85rem;margin-top:4px;">
+            <a href="{{ watch.url }}" target="_blank">{{ watch.url[:90] }}</a>
+        </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value">{{ "%.2f"|format(watch.last_price|float) if watch.last_price else '—' }}</div>
+            <div class="stat-label">Текущая цена ({{ watch.currency }})</div>
+        </div>
+        {% if stats and stats.min_p %}
+        <div class="stat-card">
+            <div class="stat-value" style="-webkit-text-fill-color:var(--green);">{{ "%.2f"|format(stats.min_p|float) }}</div>
+            <div class="stat-label">Минимум</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="-webkit-text-fill-color:var(--red);">{{ "%.2f"|format(stats.max_p|float) }}</div>
+            <div class="stat-label">Максимум</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="-webkit-text-fill-color:var(--yellow);">{{ "%.2f"|format(stats.avg_p|float) }}</div>
+            <div class="stat-label">Средняя</div>
+        </div>
+        {% endif %}
+    </div>
+    <!-- Chart -->
+    <div class="chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h2 style="margin:0;">📈 История цен</h2>
+            <div class="chart-controls">
+                <button class="btn btn-sm btn-outline" onclick="loadChart(7)">7д</button>
+                <button class="btn btn-sm btn-outline active" onclick="loadChart(30)">30д</button>
+                <button class="btn btn-sm btn-outline" onclick="loadChart(90)">90д</button>
+                <button class="btn btn-sm btn-outline" onclick="loadChart(365)">1г</button>
+                <button class="btn btn-sm btn-outline" onclick="loadChart(9999)">Всё</button>
+            </div>
+        </div>
+        <canvas id="priceChart" height="80"></canvas>
+    </div>
+
+    <!-- History table -->
+    <div class="card">
+        <h2>📜 Записи (последние 500)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Цена</th>
+                    <th>Изменение</th>
+                    <th>Исходный текст</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for h in history %}
+            <tr>
+                <td>{{ h.recorded_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                <td style="font-weight:600;">{{ "%.2f"|format(h.price|float) }} {{ watch.currency }}</td>
+                <td>
+                {% if loop.index < history|length %}
+                    {% set prev = history[loop.index].price|float %}
+                    {% set diff = h.price|float - prev %}
+                    {% if diff != 0 %}
+                    <span class="{{ 'price-up' if diff > 0 else 'price-down' }}">
+                        {{ "%+.2f"|format(diff) }}
+                    </span>
+                    {% else %}
+                    <span class="price-neutral">—</span>
+                    {% endif %}
+                {% endif %}
+                </td>
+                <td style="color:var(--muted);font-size:0.8rem;">{{ h.raw_text[:40] if h.raw_text else '' }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+let chart;
+async function loadChart(days) {
+    const resp = await fetch(`/api/watch/{{ watch.id }}/chart?days=${days}`);
+    const data = await resp.json();
+
+    document.querySelectorAll('.chart-controls .btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    if (chart) chart.destroy();
+
+    const gradient = document.getElementById('priceChart').getContext('2d');
+    const bg = gradient.createLinearGradient(0, 0, 0, 300);
+    bg.addColorStop(0, 'rgba(108,92,231,0.3)');
+    bg.addColorStop(1, 'rgba(108,92,231,0)');
+
+    chart = new Chart(document.getElementById('priceChart'), {
+        type: 'line',
+        data: {
+            labels: data.labels.map(l => new Date(l)),
+            datasets: [{
+                label: 'Цена ({{ watch.currency }})',
+                data: data.prices,
+                borderColor: '#6c5ce7',
+                backgroundColor: bg,
+                fill: true,
+                tension: 0.4,
+                pointRadius: data.prices.length > 50 ? 0 : 3,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#6c5ce7',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            interaction: { intersect: false, mode: 'index' },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { tooltipFormat: 'dd.MM.yyyy HH:mm' },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#7a7a8e', maxTicksLimit: 10 }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#7a7a8e' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1a2e',
+                    borderColor: '#6c5ce7',
+                    borderWidth: 1,
+                    titleColor: '#e4e4ef',
+                    bodyColor: '#e4e4ef',
+                }
+            }
+        }
+    });
+}
+loadChart(30);
+</script>
+</body>
+</html>
