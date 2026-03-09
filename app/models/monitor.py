@@ -1,7 +1,7 @@
 """Monitor and MonitorTemplate models."""
 from datetime import datetime
 from decimal import Decimal
-from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -10,7 +10,7 @@ class Monitor(Base):
     __tablename__ = "monitors"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(500), nullable=False)
     url: Mapped[str] = mapped_column(Text, nullable=False)
     normalized_url: Mapped[str | None] = mapped_column(Text)
@@ -32,7 +32,7 @@ class Monitor(Base):
     availability_patterns: Mapped[str | None] = mapped_column(Text)
     consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
     last_error: Mapped[str | None] = mapped_column(Text)
-    template_id: Mapped[int | None] = mapped_column(Integer)
+    template_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("monitor_templates.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -55,7 +55,7 @@ class MonitorTemplate(Base):
     xpath_selector: Mapped[str | None] = mapped_column(String(500))
     currency: Mapped[str] = mapped_column(String(10), default="RUB")
     availability_patterns: Mapped[str | None] = mapped_column(Text)
-    created_by: Mapped[int | None] = mapped_column(Integer)
+    created_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"))
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

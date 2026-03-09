@@ -1,6 +1,6 @@
 """User and APIKey models."""
 from datetime import datetime, time
-from sqlalchemy import Boolean, DateTime, Integer, String, Time, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Time, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -29,7 +29,7 @@ class APIKey(Base):
     __tablename__ = "api_keys"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     key_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     key_prefix: Mapped[str] = mapped_column(String(8), nullable=False)
     name: Mapped[str | None] = mapped_column(String(255))
