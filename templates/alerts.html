@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Алерты — Price Monitor Pro{% endblock %}
+{% block content %}
+<h1>🔔 История алертов</h1>
+<div id="alerts-list" class="section">
+    <p class="empty-state">Загрузка...</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadAlerts() {
+    const resp = await fetch('/api/v1/alerts?per_page=50');
+    const json = await resp.json();
+    const alerts = json.data || [];
+    const container = document.getElementById('alerts-list');
+    if (!alerts.length) {
+        container.innerHTML = '<p class="empty-state">Нет алертов</p>';
+        return;
+    }
+    let html = '<table class="data-table"><thead><tr><th>Дата</th><th>Тип</th><th>Сообщение</th><th>Цена</th></tr></thead><tbody>';
+    alerts.forEach(a => {
+        html += `<tr><td>${a.created_at ? new Date(a.created_at).toLocaleString('ru') : '—'}</td>`;
+        html += `<td>${a.alert_type}</td><td>${a.message}</td>`;
+        html += `<td>${a.new_price || '—'}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+loadAlerts();
+</script>
+{% endblock %}

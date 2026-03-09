@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Вход — Price Monitor Pro{% endblock %}
+{% block content %}
+<div class="login-container">
+    <h1>🔑 Вход</h1>
+    <p>Введите API-ключ для доступа к дашборду.<br>Получите ключ через Telegram-бот: /apikey</p>
+    {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+    <form method="post" action="/login" class="login-form">
+        <input type="text" name="api_key" placeholder="API-ключ" required class="input" autocomplete="off">
+        <button type="submit" class="btn btn-primary">Войти</button>
+    </form>
+</div>
+{% endblock %}

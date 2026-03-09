@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Визуальный селектор — Price Monitor Pro{% endblock %}
+{% block content %}
+<h1>🎯 Визуальный селектор</h1>
+<div class="selector-controls">
+    <input type="url" id="target-url" value="{{ target_url }}" placeholder="https://..." class="input">
+    <button onclick="loadPage()" class="btn btn-primary">Загрузить</button>
+</div>
+<div class="selector-layout">
+    <div class="selector-preview">
+        <iframe id="preview-frame" sandbox="allow-same-origin"></iframe>
+    </div>
+    <div class="selector-panel" id="selector-panel" style="display:none">
+        <h3>Выбранный элемент</h3>
+        <label>CSS-селектор:</label>
+        <input type="text" id="css-result" class="input" readonly>
+        <label>XPath:</label>
+        <input type="text" id="xpath-result" class="input" readonly>
+        <label>Текст:</label>
+        <textarea id="text-result" class="input" readonly rows="3"></textarea>
+        <div class="selector-actions">
+            <button onclick="expandSelection()" class="btn btn-sm">⬆️ Расширить</button>
+            <button onclick="narrowSelection()" class="btn btn-sm">⬇️ Сузить</button>
+            <button onclick="confirmSelection()" class="btn btn-primary">✅ Подтвердить</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/visual-selector.js"></script>
+{% endblock %}

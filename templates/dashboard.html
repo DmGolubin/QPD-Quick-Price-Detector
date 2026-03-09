@@ -1,150 +1,70 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Price Tracker</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-</head>
-<body>
-<div class="container">
-    <header>
-        <div class="logo">
-            <span style="font-size:1.8rem;">📊</span>
-            <h1>Price Tracker</h1>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-            <span style="color:var(--muted);font-size:0.8rem;">{{ watches|length }} товаров</span>
-        </div>
-    </header>
+{% extends "base.html" %}
+{% block title %}Мониторы — Price Monitor Pro{% endblock %}
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-value">{{ stats.total_monitors }}</div><div class="stat-label">Всего</div></div>
+    <div class="stat-card"><div class="stat-value">{{ stats.active_monitors }}</div><div class="stat-label">Активных</div></div>
+    <div class="stat-card"><div class="stat-value">{{ stats.with_price }}</div><div class="stat-label">С ценой</div></div>
+    <div class="stat-card"><div class="stat-value">{{ stats.data_points }}</div><div class="stat-label">Точек данных</div></div>
+</div>
 
-    <!-- Stats -->
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-value">{{ watches|length }}</div>
-            <div class="stat-label">Отслеживается</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ watches|selectattr('is_active')|list|length }}</div>
-            <div class="stat-label">Активных</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ watches|selectattr('last_price')|list|length }}</div>
-            <div class="stat-label">С ценой</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ watches|sum(attribute='data_points') }}</div>
-            <div class="stat-label">Точек данных</div>
-        </div>
-    </div>
-    <!-- Add Form -->
-    <details class="form-card" id="addForm">
-        <summary style="cursor:pointer;font-weight:600;color:var(--accent2);list-style:none;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:1.2rem;">➕</span> Добавить товар
-        </summary>
-        <form method="post" action="/watch/add" style="margin-top:20px;">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="name">Название</label>
-                    <input type="text" id="name" name="name" placeholder="iPhone 15 Pro — Ozon" required>
-                </div>
-                <div class="form-group">
-                    <label for="url">URL страницы</label>
-                    <input type="url" id="url" name="url" placeholder="https://ozon.ru/product/..." required>
-                </div>
-                <div class="form-group">
-                    <label for="css_selector">CSS селектор цены</label>
-                    <input type="text" id="css_selector" name="css_selector" placeholder="Авто-определение если пусто">
-                </div>
-                <div class="form-group">
-                    <label for="currency">Валюта</label>
-                    <select id="currency" name="currency">
-                        <option value="RUB">₽ RUB</option>
-                        <option value="USD">$ USD</option>
-                        <option value="EUR">€ EUR</option>
-                        <option value="KZT">₸ KZT</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="threshold_below">Уведомить если ниже</label>
-                    <input type="number" id="threshold_below" name="threshold_below" step="0.01" placeholder="50000">
-                </div>
-                <div class="form-group">
-                    <label for="threshold_above">Уведомить если выше</label>
-                    <input type="number" id="threshold_above" name="threshold_above" step="0.01" placeholder="100000">
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn">🚀 Добавить и проверить</button>
-                </div>
-            </div>
+{% if user %}
+<div class="section">
+    <h2>Добавить монитор</h2>
+    <form method="post" action="/monitor/add" class="add-form">
+        <input type="text" name="name" placeholder="Название" required class="input">
+        <input type="url" name="url" placeholder="https://..." required class="input">
+        <input type="text" name="css_selector" placeholder="CSS-селектор (опционально)" class="input">
+        <button type="submit" class="btn btn-primary">Добавить</button>
+    </form>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-header">
+        <h2>Мониторы</h2>
+        <form method="get" action="/" class="search-form">
+            <input type="text" name="search" value="{{ search }}" placeholder="Поиск..." class="input input-sm">
+            <button type="submit" class="btn btn-sm">🔍</button>
         </form>
-    </details>
-
-    <!-- Watches Grid -->
-    <h2>Отслеживаемые товары</h2>
-    <div class="grid">
-        {% for w in watches %}
-        <div class="card">
-            <div class="card-header">
-                <div>
-                    <div class="card-title">{{ w.name }}</div>
-                    <div class="card-url">{{ w.url[:70] }}</div>
-                </div>
-                <span class="badge {{ 'badge-active' if w.is_active else 'badge-paused' }}">
-                    {{ '● Active' if w.is_active else '⏸ Paused' }}
-                </span>
-            </div>
-
-            {% if w.last_price %}
-                {% set current = w.last_price|float %}
-                {% set prev = w.prev_price|float if w.prev_price else None %}
-                {% if prev and current > prev %}
-                    {% set cls = 'price-up' %}
-                    {% set diff = current - prev %}
-                    {% set pct = ((diff) / prev * 100) %}
-                {% elif prev and current < prev %}
-                    {% set cls = 'price-down' %}
-                    {% set diff = current - prev %}
-                    {% set pct = ((diff) / prev * 100) %}
+    </div>
+    {% if monitors %}
+    <div class="monitors-grid">
+        {% for m in monitors %}
+        <a href="/monitor/{{ m.id }}" class="monitor-card">
+            <div class="monitor-header">
+                <span class="monitor-name">{{ m.name }}</span>
+                {% if m.is_active and (m.consecutive_failures or 0) == 0 %}
+                <span class="badge badge-active">✅</span>
+                {% elif (m.consecutive_failures or 0) > 0 %}
+                <span class="badge badge-error">⚠️</span>
                 {% else %}
-                    {% set cls = 'price-neutral' %}
+                <span class="badge badge-paused">⏸</span>
                 {% endif %}
-                <div class="price-display {{ cls }}">
-                    {{ "%.2f"|format(current) }} {{ w.currency }}
-                    {% if prev and current != prev %}
-                        <span class="price-diff">({{ "%+.2f"|format(diff) }} / {{ "%+.1f"|format(pct) }}%)</span>
-                    {% endif %}
-                </div>
-            {% else %}
-                <div class="price-display price-neutral">Ожидание данных...</div>
+            </div>
+            <div class="monitor-price">
+                {% if m.last_price %}{{ "%.2f"|format(m.last_price|float) }} {{ m.currency }}{% else %}—{% endif %}
+            </div>
+            {% if m.availability_status == "out_of_stock" %}
+            <span class="badge badge-oos">Нет в наличии</span>
+            {% elif m.availability_status == "in_stock" %}
+            <span class="badge badge-instock">В наличии</span>
             {% endif %}
-
-            <div class="meta-row">
-                <div class="meta-item">📊 <span>{{ w.data_points or 0 }}</span> записей</div>
-                {% if w.threshold_below %}<div class="meta-item">🔔 ↓ <span>{{ w.threshold_below }}</span></div>{% endif %}
-                {% if w.threshold_above %}<div class="meta-item">⚠️ ↑ <span>{{ w.threshold_above }}</span></div>{% endif %}
-                {% if w.last_checked %}<div class="meta-item">🕐 {{ w.last_checked.strftime('%d.%m %H:%M') }}</div>{% endif %}
+            <div class="monitor-meta">
+                {% if m.last_checked %}{{ m.last_checked.strftime('%d.%m %H:%M') }}{% endif %}
             </div>
-
-            <div class="actions">
-                <a href="/watch/{{ w.id }}" class="btn btn-sm btn-outline">📈 Подробнее</a>
-                <form method="post" action="/watch/{{ w.id }}/toggle" style="margin:0;">
-                    <button class="btn btn-sm btn-ghost">{{ '⏸' if w.is_active else '▶️' }}</button>
-                </form>
-                <form method="post" action="/watch/{{ w.id }}/delete" style="margin:0;" onsubmit="return confirm('Удалить?')">
-                    <button class="btn btn-sm btn-ghost" style="color:var(--red);">🗑</button>
-                </form>
-            </div>
-        </div>
-        {% else %}
-        <div class="card" style="grid-column:1/-1;text-align:center;padding:60px;">
-            <div style="font-size:3rem;margin-bottom:16px;">📭</div>
-            <p style="color:var(--muted);">Нет отслеживаемых товаров. Добавь первый через форму выше или Telegram-бот.</p>
-        </div>
+        </a>
         {% endfor %}
     </div>
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}<a href="/?page={{ page - 1 }}&search={{ search }}" class="btn btn-sm">⬅️ Назад</a>{% endif %}
+        <span>{{ page }} / {{ total_pages }}</span>
+        {% if page < total_pages %}<a href="/?page={{ page + 1 }}&search={{ search }}" class="btn btn-sm">Далее ➡️</a>{% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="empty-state">Нет мониторов. Добавьте первый выше или через Telegram-бот.</p>
+    {% endif %}
 </div>
-</body>
-</html>
+{% endblock %}
