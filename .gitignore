@@ -35,11 +35,10 @@ db/
 playwright-report/
 test-results/
 
-# Old prototype files (pre-refactor)
-bot.py
-config.py
-database.py
-scraper.py
-web.py
-main.py
-price-tracker/
+# Old prototype files (pre-refactor, root-level only)
+/bot.py
+/config.py
+/database.py
+/scraper.py
+/web.py
+/main.py
