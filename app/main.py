@@ -140,21 +140,48 @@ async def seed_templates():
     logger.info("Store templates seeded")
 
 
+async def _wait_for_db(max_retries: int = 10, delay: float = 3.0):
+    """Wait until the database is reachable."""
+    import asyncpg
+    db_url = _normalize_db_url_for_asyncpg(settings.DATABASE_URL)
+    for attempt in range(1, max_retries + 1):
+        try:
+            conn = await asyncpg.connect(db_url)
+            await conn.close()
+            logger.info(f"Database reachable (attempt {attempt})")
+            return True
+        except Exception as e:
+            logger.warning(f"DB not ready (attempt {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                await asyncio.sleep(delay)
+    logger.error("Database not reachable after all retries")
+    return False
+
+
 async def _background_init():
     """Initialize heavy services in background so the server starts immediately."""
     global scraper, scheduler
 
-    # 1. Migrations
-    try:
-        await run_migrations()
-    except Exception as e:
-        logger.error(f"Migration failed: {e}", exc_info=True)
+    if not settings.DATABASE_URL:
+        logger.warning("DATABASE_URL not set — skipping DB-dependent init")
+    else:
+        # Wait for DB to be ready (Railway may start app before Postgres)
+        db_ready = await _wait_for_db()
 
-    # 2. Seed templates
-    try:
-        await seed_templates()
-    except Exception as e:
-        logger.error(f"Template seeding failed: {e}", exc_info=True)
+        if db_ready:
+            # 1. Migrations
+            try:
+                await run_migrations()
+            except Exception as e:
+                logger.error(f"Migration failed: {e}", exc_info=True)
+
+            # 2. Seed templates
+            try:
+                await seed_templates()
+            except Exception as e:
+                logger.error(f"Template seeding failed: {e}", exc_info=True)
+        else:
+            logger.error("Skipping migrations and templates — DB unreachable")
 
     # 3. Scraper (Playwright)
     try:
